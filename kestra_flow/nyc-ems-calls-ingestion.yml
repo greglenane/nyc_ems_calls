@@ -1,0 +1,18 @@
+id: nyc-ems-calls-ingestion
+namespace: null
+
+variables:
+  start_date: "{{trigger.date | dateAdd(-1,'DAYS')}}"
+  api_url: "https://data.cityofnewyork.us/resource/76xm-jjuj?$where=incident_datetime between '{{render(vars.start_date)}}' and '{{trigger.date}}'&$limit=50000"
+
+tasks:
+  - id: hello
+    type: io.kestra.plugin.core.log.Log
+    message: 
+      - "{{render(vars.start_date)}}"
+      - "{{render(vars.api_url)}}"
+
+triggers:
+  - id: daily
+    type: io.kestra.plugin.core.trigger.Schedule
+    cron: "0 0 * * *"
