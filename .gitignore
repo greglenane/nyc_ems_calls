@@ -3,3 +3,4 @@ api-token.txt
 notes.txt
 .terraform*
 terraform.tfstate*
+docker/.env*
