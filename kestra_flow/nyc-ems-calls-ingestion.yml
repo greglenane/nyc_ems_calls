@@ -2,41 +2,53 @@ id: nyc-ems-calls-ingestion
 namespace: null
 
 variables:
-  #when we figure out the rendering of the api var then we can uncomment this. for now lets use easy now() so that we canf fix the url string easily
-  #start_date: "{{trigger.date | dateAdd(-1,'DAYS')}}"
-  #api_url: "https://data.cityofnewyork.us/resource/76xm-jjuj?$where=incident_datetime between '{{ render(vars.start_date) }}' and '{{ trigger.date }}'&$limit=50000"
   start_date: "{{ now() | dateAdd(-10, 'YEARS') | date('yyyy-MM-dd') }}"
-  api_url: "https://data.cityofnewyork.us/resource/76xm-jjuj?$where=incident_datetime between '{{ render(vars.start_date) }}T00:00:00' and '{{ render(vars.start_date)}}T12:00:00'&$limit=50000" 
+  api_url: "https://data.cityofnewyork.us/resource/76xm-jjuj?$where=incident_datetime%20between%20'{{ render(vars.start_date) }}T00:00:00'%20and%20'{{ render(vars.start_date) | dateAdd(1, 'DAYS') | date('yyyy-MM-dd') }}T00:00:00'&$limit=50000" 
+  file: "{{ render(vars.start_date) }}_{{ render(vars.start_date) | dateAdd(1, 'DAYS') | date('yyyy-MM-dd') }}_nyc-ems.csv"
+  gcs_file: "gs://{{kv('GCP_BUCKET_NAME')}}/{{vars.file}}"
+  data: "{{ outputs.read_api.outputFiles[ render(vars.file) ]}}"
 
 tasks:
-  - id: check_url
+  - id: check_vars
     type: io.kestra.plugin.core.log.Log
     message:
       - "{{render(vars.api_url)}}"
-  
-  - id: python
-    type: io.kestra.plugin.scripts.python.Script
-    outputFiles:
-      - "check_head.csv"
-    script: |
-      import pandas as pd
-      import requests
-      import json 
+      - "{{render(vars.file)}}"
+      - "{{render(vars.gcs_file)}}"
 
-      url = "{{render(vars.api_url)}}"
-      r = requests.get(url)
-      df = pd.DataFrame(json.loads(r.text))
-      print(df.shape)
-    beforeCommands:
-      - pip install requests pandas
-  
   - id: api
     type: io.kestra.plugin.core.http.Request
     uri: "{{ render(vars.api_url) }}"
-  
-  
 
+  - id: read_api
+    type: io.kestra.plugin.scripts.python.Script
+    containerImage: ghcr.io/kestra-io/pydata:latest
+    outputFiles:
+      - "*.csv"
+    beforeCommands: 
+      - pip install polars
+    script: |
+      import polars as pl
+
+      data = {{ outputs.api.body | jq('.') | first}}
+      df = pl.from_dicts(data)
+
+      df.write_csv("{{ render(vars.file) }}")
+
+  - id: upload_to_gcs
+    type: io.kestra.plugin.gcp.gcs.Upload
+    from: "{{render(vars.data)}}"
+    to: "{{render(vars.gcs_file)}}"
+  
 #triggers:
   #- id: daily
   #  type: io.kestra.plugin.core.trigger.Schedule
-   # cron: "0 0 * * *"
+  #  cron: "0 0 * * *"
+
+pluginDefaults:
+  - type: io.kestra.plugin.gcp
+    values:
+      serviceAccount: "{{kv('GCP_CREDS')}}"
+      projectId: "{{kv('GCP_PROJECT_ID')}}"
+      location: "{{kv('GCP_LOCATION')}}"
+      bucket: "{{kv('GCP_BUCKET_NAME')}}"
