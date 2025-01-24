@@ -2,17 +2,41 @@ id: nyc-ems-calls-ingestion
 namespace: null
 
 variables:
-  start_date: "{{trigger.date | dateAdd(-1,'DAYS')}}"
-  api_url: "https://data.cityofnewyork.us/resource/76xm-jjuj?$where=incident_datetime between '{{render(vars.start_date)}}' and '{{trigger.date}}'&$limit=50000"
+  #when we figure out the rendering of the api var then we can uncomment this. for now lets use easy now() so that we canf fix the url string easily
+  #start_date: "{{trigger.date | dateAdd(-1,'DAYS')}}"
+  #api_url: "https://data.cityofnewyork.us/resource/76xm-jjuj?$where=incident_datetime between '{{ render(vars.start_date) }}' and '{{ trigger.date }}'&$limit=50000"
+  start_date: "{{ now() | dateAdd(-10, 'YEARS') | date('yyyy-MM-dd') }}"
+  api_url: "https://data.cityofnewyork.us/resource/76xm-jjuj?$where=incident_datetime between '{{ render(vars.start_date) }}T00:00:00' and '{{ render(vars.start_date)}}T12:00:00'&$limit=50000" 
 
 tasks:
-  - id: hello
+  - id: check_url
     type: io.kestra.plugin.core.log.Log
-    message: 
-      - "{{render(vars.start_date)}}"
+    message:
       - "{{render(vars.api_url)}}"
+  
+  - id: python
+    type: io.kestra.plugin.scripts.python.Script
+    outputFiles:
+      - "check_head.csv"
+    script: |
+      import pandas as pd
+      import requests
+      import json 
 
-triggers:
-  - id: daily
-    type: io.kestra.plugin.core.trigger.Schedule
-    cron: "0 0 * * *"
+      url = "{{render(vars.api_url)}}"
+      r = requests.get(url)
+      df = pd.DataFrame(json.loads(r.text))
+      print(df.shape)
+    beforeCommands:
+      - pip install requests pandas
+  
+  - id: api
+    type: io.kestra.plugin.core.http.Request
+    uri: "{{ render(vars.api_url) }}"
+  
+  
+
+#triggers:
+  #- id: daily
+  #  type: io.kestra.plugin.core.trigger.Schedule
+   # cron: "0 0 * * *"
