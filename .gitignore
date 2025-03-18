@@ -1,6 +1,11 @@
-/.ipynb_checkpoints
+*.ipynb_checkpoints
 api-token.txt
 notes.txt
 .terraform*
 terraform.tfstate*
 docker/.env*
+*.xlsx
+.python-version
+pyproject.toml
+uv.lock
+*.csv
