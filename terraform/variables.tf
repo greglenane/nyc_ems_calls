@@ -1,6 +1,6 @@
 variable "project" {
   description = "Project"
-  default     = "nyc-ems-calls"
+  default     = "ny-rides-gregl-446219"
 }
 
 variable "region" {
@@ -20,7 +20,7 @@ variable "bq_dataset_name" {
 
 variable "gcs_bucket_name" {
   description = "My Storage Bucket Name"
-  default     = "nyc-ems-calls-bucket-gl"
+  default     = "nyc-ems-calls-446219-gl"
 }
 
 variable "gcs_storage_class" {

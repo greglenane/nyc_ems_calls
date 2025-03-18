@@ -12,7 +12,7 @@ provider "google" {
   region      = var.region
 }
 
-resource "google_storage_bucket" "nyc-ems-calls_bucket" {
+resource "google_storage_bucket" "nyc-ems-calls-bucket-446219" {
   name          = var.gcs_bucket_name
   location      = var.location
   storage_class = var.gcs_storage_class
