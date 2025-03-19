@@ -1,0 +1,82 @@
+id: nyc-ems-calls-ingestion
+namespace: ems
+
+variables:
+  end_date: "{{ now() | dateAdd(-20, 'YEARS') | date('yyyy-MM-dd') }}"
+  start_date: "{{ render(vars.end_date) | dateAdd(-10, 'DAYS') | date('yyyy-MM-dd') }}"
+  year: "{{ render(vars.end_date) | date('yyyy') }}"
+  month: "{{ render(vars.end_date) | date('MM') }}"
+  api_url: "https://data.cityofnewyork.us/resource/76xm-jjuj?$where=incident_datetime%20between%20'{{ render(vars.start_date) }}T00:00:00'%20and%20'{{ render(vars.end_date) }}T00:00:00'&$limit=50000" 
+  file_staging: "{{ render(vars.start_date) }}_{{ render(vars.end_date)}}_nyc-ems-staging.csv"
+  gcs_archive: "gs://{{kv('GCP_BUCKET_NAME')}}/archive/{{ vars.file_staging}}"
+  file_prod: "{{ render(vars.start_date) }}_{{ render(vars.end_date)}}_nyc-ems.csv"
+  gcs_prod: "gs://{{kv('GCP_BUCKET_NAME')}}/{{vars.year}}/{{vars.month}}/{{vars.file_prod}}"
+
+tasks:
+  - id: read_api
+    type: io.kestra.plugin.scripts.python.Script
+    outputFiles:
+      - "{{ render(vars.file_staging) }}"
+    beforeCommands: 
+      - pip install pandas requests
+    script: |
+      import pandas as pd
+      import requests
+      import json
+
+      r = requests.get("{{ vars.api_url }}")
+
+      df = pd.DataFrame(json.loads(r.text))
+      row_count = len(df)
+
+      df.to_csv("{{ render(vars.file_staging) }}", index=False)
+
+  - id: upload_to_gcs_staging
+    type: io.kestra.plugin.gcp.gcs.Upload
+    from: "{{ outputs.read_api.outputFiles[ render(vars.file_staging) ]}}"
+    to: "{{ render(vars.gcs_archive) }}"
+
+  - id: transform_data
+    type: io.kestra.plugin.scripts.python.Script
+    outputFiles:
+      - "{{ render(vars.file_prod) }}"
+    beforeCommands: 
+      - pip install pandas
+    script: |
+      import pandas as pd
+
+      df = pd.read_csv("{{ outputs['read_api']['outputFiles'][render(vars.file_staging)] }}")
+      df = df.fillna("")
+
+      timestamp_columns = ['incident_datetime', 'first_assignment_datetime', 'first_activation_datetime', 'first_on_scene_datetime', 'first_to_hosp_datetime', 'first_hosp_arrival_datetime', 'incident_close_datetime']   
+      for col in timestamp_columns:
+        df[col] = df[col].apply(lambda x: pd.to_datetime(x) if x != "" else "")
+      
+      df['year'] = df['incident_datetime'].dt.year
+      df['month'] = df['incident_datetime'].dt.month
+
+      bool_columns = ['valid_dispatch_rspns_time_indc', 'valid_incident_rspns_time_indc', 'held_indicator', 'reopen_indicator', 'special_event_indicator', 'standby_indicator', 'transfer_indicator']
+      for col in bool_columns:
+         df[col] = df[col].replace({'Y': True, 'N': False})
+      
+      df.to_csv("{{ render(vars.file_prod) }}", index=False)
+
+  - id: upload_to_gcs_prod
+    type: io.kestra.plugin.gcp.gcs.Upload
+    from: "{{ outputs.transform_data.outputFiles[ render(vars.file_prod) ]}}"
+    to: "{{ render(vars.gcs_prod) }}"
+
+triggers:
+  - id: weekly-stop-after-fail
+    type: io.kestra.plugin.core.trigger.Schedule
+    cron: "@weekly"
+    stopAfter:
+      - FAILED
+
+pluginDefaults:
+  - type: io.kestra.plugin.gcp
+    values:
+      serviceAccount: "{{kv('GCP_CREDS')}}"
+      projectId: "{{kv('GCP_PROJECT_ID')}}"
+      location: "{{kv('GCP_LOCATION')}}"
+      bucket: "{{kv('GCP_BUCKET_NAME')}}"

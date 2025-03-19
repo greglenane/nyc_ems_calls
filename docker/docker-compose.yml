@@ -1,34 +1,26 @@
 volumes:
-  postgres-data:
+  kestra-data-ems:
     driver: local
-  kestra-data:
+  postgres-data-ems:
     driver: local
 
 services:
-  postgres:
+  postgres-kestra-ems:
     image: postgres
     volumes:
-      - postgres-data:/var/lib/postgresql/data
+      - postgres-data-ems:/var/lib/ems/postgresql/data/
     environment:
       POSTGRES_DB: kestra
       POSTGRES_USER: kestra
       POSTGRES_PASSWORD: k3str4
+      PGDATA: /var/lib/ems/postgresql/data/
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -d $${POSTGRES_DB} -U $${POSTGRES_USER}"]
       interval: 30s
       timeout: 10s
       retries: 10
-  
-  #postgres-db:
-    #image: postgres
-    #environment:
-      #POSTGRES_USER: kestra
-      #POSTGRES_PASSWORD: k3str4
-      #POSTGRES_DB: postgres-zoomcamp
-    #ports:
-      #- "5432:5432"
-    #volumes:
-      #- postgres-data:/var/lib/postgresql/data
+    ports:
+      - "5442:5432"
 
   kestra:
     image: kestra/kestra:latest
@@ -36,40 +28,40 @@ services:
     user: "root"
     command: server standalone
     volumes:
-      - kestra-data:/app/storage
+      - kestra-data-ems:/app/ems/storage
       - /var/run/docker.sock:/var/run/docker.sock
       - /tmp/kestra-wd:/tmp/kestra-wd
     environment:
+      SECRET_GITHUB_TOKEN: ${SECRET_GITHUB_TOKEN}
       KESTRA_CONFIGURATION: |
         datasources:
           postgres:
-            url: jdbc:postgresql://postgres:5432/kestra
+            url: jdbc:postgresql://postgres-kestra-ems:5432/kestra
             driverClassName: org.postgresql.Driver
             username: kestra
             password: k3str4
         kestra:
           server:
             basicAuth:
-              enabled: false
-              username: "admin@kestra.io" # it must be a valid email address
-              password: kestra
+              enabled: true
+              username: ${SECRET_KESTRA_USERNAME}
+              password: ${SECRET_KESTRA_PASSWORD}
           repository:
             type: postgres
           storage:
             type: local
             local:
-              basePath: "/app/storage"
+              basePath: "/app/ems/storage"
           queue:
             type: postgres
           tasks:
             tmpDir:
               path: /tmp/kestra-wd/tmp
-          url: http://localhost:8080/
+          url: http://localhost:8082/
           tutorial-flows:
             enabled: false
     ports:
-      - "8080:8080"
-      - "8081:8081"
+      - "8082:8080"
     depends_on:
-      postgres:
+      postgres-kestra-ems:
         condition: service_started
