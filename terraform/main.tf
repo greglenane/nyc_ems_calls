@@ -31,5 +31,5 @@ resource "google_storage_bucket" "nyc-ems-calls-bucket-446219" {
 
 resource "google_bigquery_dataset" "nyc_ems_calls_bq_dataset" {
   dataset_id = var.bq_dataset_name
-  location   = var.location
+  location   = var.region
 }
