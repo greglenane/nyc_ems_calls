@@ -7,16 +7,14 @@ variables:
   year: "{{ render(vars.end_date) | date('yyyy') }}"
   month: "{{ render(vars.end_date) | date('MM') }}"
   api_url: "https://data.cityofnewyork.us/resource/76xm-jjuj?$where=incident_datetime%20between%20'{{ render(vars.start_date) }}T00:00:00'%20and%20'{{ render(vars.end_date) }}T00:00:00'&$limit=50000" 
-  file_staging: "{{ render(vars.start_date) }}_{{ render(vars.end_date)}}_nyc-ems-staging.csv"
-  gcs_archive: "gs://{{kv('GCP_BUCKET_NAME')}}/archive/{{ vars.file_staging}}"
-  file_prod: "{{ render(vars.start_date) }}_{{ render(vars.end_date)}}_nyc-ems.csv"
-  gcs_prod: "gs://{{kv('GCP_BUCKET_NAME')}}/{{vars.year}}/{{vars.month}}/{{vars.file_prod}}"
+  file: "{{ render(vars.start_date) }}_{{ render(vars.end_date)}}_nyc-ems.csv"
+  gcs_path: "gs://{{kv('GCP_BUCKET_NAME')}}/{{vars.year}}/{{vars.month}}/{{vars.file}}"
 
 tasks:
-  - id: read_api
+  - id: read_transform
     type: io.kestra.plugin.scripts.python.Script
     outputFiles:
-      - "{{ render(vars.file_staging) }}"
+      - "{{ render(vars.file) }}"
     beforeCommands: 
       - pip install pandas requests
     script: |
@@ -26,45 +24,36 @@ tasks:
 
       r = requests.get("{{ vars.api_url }}")
 
-      df = pd.DataFrame(json.loads(r.text))
-      row_count = len(df)
-
-      df.to_csv("{{ render(vars.file_staging) }}", index=False)
-
-  - id: upload_to_gcs_staging
-    type: io.kestra.plugin.gcp.gcs.Upload
-    from: "{{ outputs.read_api.outputFiles[ render(vars.file_staging) ]}}"
-    to: "{{ render(vars.gcs_archive) }}"
-
-  - id: transform_data
-    type: io.kestra.plugin.scripts.python.Script
-    outputFiles:
-      - "{{ render(vars.file_prod) }}"
-    beforeCommands: 
-      - pip install pandas
-    script: |
-      import pandas as pd
-
-      df = pd.read_csv("{{ outputs['read_api']['outputFiles'][render(vars.file_staging)] }}")
-      df = df.fillna("")
-
-      timestamp_columns = ['incident_datetime', 'first_assignment_datetime', 'first_activation_datetime', 'first_on_scene_datetime', 'first_to_hosp_datetime', 'first_hosp_arrival_datetime', 'incident_close_datetime']   
-      for col in timestamp_columns:
-        df[col] = df[col].apply(lambda x: pd.to_datetime(x) if x != "" else "")
+      df = pd.DataFrame(json.loads(r.text)).fillna("")
       
-      df['year'] = df['incident_datetime'].dt.year
-      df['month'] = df['incident_datetime'].dt.month
-
-      bool_columns = ['valid_dispatch_rspns_time_indc', 'valid_incident_rspns_time_indc', 'held_indicator', 'reopen_indicator', 'special_event_indicator', 'standby_indicator', 'transfer_indicator']
-      for col in bool_columns:
-         df[col] = df[col].replace({'Y': True, 'N': False})
+      timestamp_columns = [
+          'incident_datetime', 'first_assignment_datetime', 'first_activation_datetime', 
+          'first_on_scene_datetime', 'first_to_hosp_datetime', 'first_hosp_arrival_datetime', 
+          'incident_close_datetime'
+      ]
       
-      df.to_csv("{{ render(vars.file_prod) }}", index=False)
+      # Convert datetime columns while keeping empty strings
+      df[timestamp_columns] = df[timestamp_columns].apply(lambda col: pd.to_datetime(col, errors='coerce').astype(str).replace("NaT", ""))
+      
+      # Extract year and month safely
+      df['year'] = pd.to_datetime(df['incident_datetime'], errors='coerce').dt.year.fillna("").astype(str)
+      df['month'] = pd.to_datetime(df['incident_datetime'], errors='coerce').dt.month.fillna("").astype(str)
+      
+      # Convert boolean columns correctly using `.replace()`
+      bool_columns = [
+          'valid_dispatch_rspns_time_indc', 'valid_incident_rspns_time_indc', 'held_indicator', 
+          'reopen_indicator', 'special_event_indicator', 'standby_indicator', 'transfer_indicator'
+      ]
+
+      pd.set_option('future.no_silent_downcasting', True)
+      df[bool_columns] = df[bool_columns].replace({'Y': True, 'N': False})
+      
+      df.to_csv("{{ render(vars.file) }}", index=False)
 
   - id: upload_to_gcs_prod
     type: io.kestra.plugin.gcp.gcs.Upload
-    from: "{{ outputs.transform_data.outputFiles[ render(vars.file_prod) ]}}"
-    to: "{{ render(vars.gcs_prod) }}"
+    from: "{{ outputs.read_transform.outputFiles[ render(vars.file) ]}}"
+    to: "{{ render(vars.gcs_path) }}"
 
 triggers:
   - id: weekly-stop-after-fail

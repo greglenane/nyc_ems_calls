@@ -1,0 +1,93 @@
+[0m19:08:11.950034 [debug] [MainThread]: Sending event: {'category': 'dbt', 'action': 'invocation', 'label': 'start', 'context': [<snowplow_tracker.self_describing_json.SelfDescribingJson object at 0x7fec9e812270>, <snowplow_tracker.self_describing_json.SelfDescribingJson object at 0x7fec9f871810>, <snowplow_tracker.self_describing_json.SelfDescribingJson object at 0x7fec9dc34b90>]}
+
+
+============================== 19:08:11.955512 | ff91bc3e-4cc3-44e5-96dd-2fe0f3669938 ==============================
+[0m19:08:11.955512 [info ] [MainThread]: Running with dbt=1.9.3
+[0m19:08:11.956469 [debug] [MainThread]: running dbt with arguments {'printer_width': '80', 'indirect_selection': 'eager', 'log_cache_events': 'False', 'write_json': 'True', 'partial_parse': 'True', 'cache_selected_only': 'False', 'profiles_dir': '/home/greg/.dbt', 'fail_fast': 'False', 'debug': 'False', 'log_path': 'logs', 'warn_error': 'None', 'version_check': 'True', 'use_colors': 'True', 'use_experimental_parser': 'False', 'empty': 'None', 'quiet': 'False', 'no_print': 'None', 'log_format': 'default', 'static_parser': 'True', 'invocation_command': 'dbt init dbt-nyc-ems-calls', 'introspect': 'True', 'target_path': 'None', 'warn_error_options': 'WarnErrorOptions(include=[], exclude=[])', 'send_anonymous_usage_stats': 'True'}
+[0m19:08:12.022339 [warn ] [MainThread]: [ConfigFolderDirectory]: Unable to parse logging event dictionary. Failed to parse dir field: expected string or bytes-like object, got 'PosixPath'.. Dictionary: {'dir': PosixPath('/home/greg/.dbt')}
+[0m19:08:12.023336 [info ] [MainThread]: Creating dbt configuration folder at 
+[0m19:08:50.814120 [debug] [MainThread]: Starter project path: /home/greg/projects/nyc_ems_calls/dbt-env/lib/python3.13/site-packages/dbt/include/starter_project
+[0m19:08:50.820718 [info ] [MainThread]: 
+Your new dbt project "dbt_nyc_ems_calls" was created!
+
+For more information on how to configure the profiles.yml file,
+please consult the dbt documentation here:
+
+  https://docs.getdbt.com/docs/configure-your-profile
+
+One more thing:
+
+Need help? Don't hesitate to reach out to us via GitHub issues or on Slack:
+
+  https://community.getdbt.com/
+
+Happy modeling!
+
+[0m19:08:50.821825 [info ] [MainThread]: Setting up your profile.
+[0m19:11:11.928426 [info ] [MainThread]: Profile dbt_nyc_ems_calls written to /home/greg/.dbt/profiles.yml using target's profile_template.yml and your supplied values. Run 'dbt debug' to validate the connection.
+[0m19:11:11.930413 [debug] [MainThread]: Resource report: {"command_name": "init", "command_success": true, "command_wall_clock_time": 180.07071, "process_in_blocks": "264", "process_kernel_time": 0.416686, "process_mem_max_rss": "199772", "process_out_blocks": "744", "process_user_time": 3.01926}
+[0m19:11:11.931290 [debug] [MainThread]: Command `dbt init` succeeded at 19:11:11.931102 after 180.07 seconds
+[0m19:11:11.931935 [debug] [MainThread]: Sending event: {'category': 'dbt', 'action': 'invocation', 'label': 'end', 'context': [<snowplow_tracker.self_describing_json.SelfDescribingJson object at 0x7fec8c8d6ea0>, <snowplow_tracker.self_describing_json.SelfDescribingJson object at 0x7fec9d9e1b50>, <snowplow_tracker.self_describing_json.SelfDescribingJson object at 0x7fec8c8dae00>]}
+[0m19:11:11.932669 [debug] [MainThread]: Flushing usage events
+[0m19:11:12.095562 [debug] [MainThread]: An error was encountered while trying to flush usage events
+[0m19:16:40.555430 [debug] [MainThread]: Sending event: {'category': 'dbt', 'action': 'invocation', 'label': 'start', 'context': [<snowplow_tracker.self_describing_json.SelfDescribingJson object at 0x7f808a33a270>, <snowplow_tracker.self_describing_json.SelfDescribingJson object at 0x7f808b379810>, <snowplow_tracker.self_describing_json.SelfDescribingJson object at 0x7f8089780b90>]}
+
+
+============================== 19:16:40.560582 | 41bd3f9a-9401-45d1-b599-63a4eff4f55a ==============================
+[0m19:16:40.560582 [info ] [MainThread]: Running with dbt=1.9.3
+[0m19:16:40.561566 [debug] [MainThread]: running dbt with arguments {'printer_width': '80', 'indirect_selection': 'eager', 'log_cache_events': 'False', 'write_json': 'True', 'partial_parse': 'True', 'cache_selected_only': 'False', 'profiles_dir': '/home/greg/.dbt', 'fail_fast': 'False', 'version_check': 'True', 'log_path': 'logs', 'warn_error': 'None', 'debug': 'False', 'use_colors': 'True', 'use_experimental_parser': 'False', 'no_print': 'None', 'quiet': 'False', 'empty': 'None', 'warn_error_options': 'WarnErrorOptions(include=[], exclude=[])', 'static_parser': 'True', 'introspect': 'True', 'log_format': 'default', 'target_path': 'None', 'invocation_command': 'dbt debug', 'send_anonymous_usage_stats': 'True'}
+[0m19:16:40.578582 [info ] [MainThread]: dbt version: 1.9.3
+[0m19:16:40.579418 [info ] [MainThread]: python version: 3.13.2
+[0m19:16:40.580005 [info ] [MainThread]: python path: /home/greg/projects/nyc_ems_calls/dbt-env/bin/python3
+[0m19:16:40.580560 [info ] [MainThread]: os info: Linux-5.15.0-1074-gcp-x86_64-with-glibc2.31
+[0m19:16:41.731629 [info ] [MainThread]: Using profiles dir at /home/greg/.dbt
+[0m19:16:41.732530 [info ] [MainThread]: Using profiles.yml file at /home/greg/.dbt/profiles.yml
+[0m19:16:41.733240 [info ] [MainThread]: Using dbt_project.yml file at /home/greg/projects/nyc_ems_calls/dbt_project.yml
+[0m19:16:41.733858 [info ] [MainThread]: adapter type: bigquery
+[0m19:16:41.734437 [info ] [MainThread]: adapter version: 1.9.1
+[0m19:16:41.735077 [info ] [MainThread]: Configuration:
+[0m19:16:41.735612 [info ] [MainThread]:   profiles.yml file [[32mOK found and valid[0m]
+[0m19:16:41.736167 [info ] [MainThread]:   dbt_project.yml file [[31mERROR not found[0m]
+[0m19:16:41.736717 [info ] [MainThread]: Required dependencies:
+[0m19:16:41.737322 [debug] [MainThread]: Executing "git --help"
+[0m19:16:41.741197 [debug] [MainThread]: STDOUT: "b"usage: git [--version] [--help] [-C <path>] [-c <name>=<value>]\n           [--exec-path[=<path>]] [--html-path] [--man-path] [--info-path]\n           [-p | --paginate | -P | --no-pager] [--no-replace-objects] [--bare]\n           [--git-dir=<path>] [--work-tree=<path>] [--namespace=<name>]\n           <command> [<args>]\n\nThese are common Git commands used in various situations:\n\nstart a working area (see also: git help tutorial)\n   clone             Clone a repository into a new directory\n   init              Create an empty Git repository or reinitialize an existing one\n\nwork on the current change (see also: git help everyday)\n   add               Add file contents to the index\n   mv                Move or rename a file, a directory, or a symlink\n   restore           Restore working tree files\n   rm                Remove files from the working tree and from the index\n   sparse-checkout   Initialize and modify the sparse-checkout\n\nexamine the history and state (see also: git help revisions)\n   bisect            Use binary search to find the commit that introduced a bug\n   diff              Show changes between commits, commit and working tree, etc\n   grep              Print lines matching a pattern\n   log               Show commit logs\n   show              Show various types of objects\n   status            Show the working tree status\n\ngrow, mark and tweak your common history\n   branch            List, create, or delete branches\n   commit            Record changes to the repository\n   merge             Join two or more development histories together\n   rebase            Reapply commits on top of another base tip\n   reset             Reset current HEAD to the specified state\n   switch            Switch branches\n   tag               Create, list, delete or verify a tag object signed with GPG\n\ncollaborate (see also: git help workflows)\n   fetch             Download objects and refs from another repository\n   pull              Fetch from and integrate with another repository or a local branch\n   push              Update remote refs along with associated objects\n\n'git help -a' and 'git help -g' list available subcommands and some\nconcept guides. See 'git help <command>' or 'git help <concept>'\nto read about a specific subcommand or concept.\nSee 'git help git' for an overview of the system.\n""
+[0m19:16:41.741921 [debug] [MainThread]: STDERR: "b''"
+[0m19:16:41.742434 [info ] [MainThread]:  - git [[32mOK found[0m]
+
+[0m19:16:41.743087 [info ] [MainThread]: Connection:
+[0m19:16:41.743715 [info ] [MainThread]:   method: service-account
+[0m19:16:41.744258 [info ] [MainThread]:   database: ny-rides-gregl-446219
+[0m19:16:41.744823 [info ] [MainThread]:   execution_project: ny-rides-gregl-446219
+[0m19:16:41.745345 [info ] [MainThread]:   schema: nyc_ems_calls_dataset
+[0m19:16:41.745941 [info ] [MainThread]:   location: US
+[0m19:16:41.746505 [info ] [MainThread]:   priority: interactive
+[0m19:16:41.747143 [info ] [MainThread]:   maximum_bytes_billed: None
+[0m19:16:41.747736 [info ] [MainThread]:   impersonate_service_account: None
+[0m19:16:41.748251 [info ] [MainThread]:   job_retry_deadline_seconds: None
+[0m19:16:41.748810 [info ] [MainThread]:   job_retries: 1
+[0m19:16:41.749332 [info ] [MainThread]:   job_creation_timeout_seconds: None
+[0m19:16:41.749910 [info ] [MainThread]:   job_execution_timeout_seconds: 300
+[0m19:16:41.750780 [info ] [MainThread]:   timeout_seconds: 300
+[0m19:16:41.751307 [info ] [MainThread]:   client_id: None
+[0m19:16:41.751832 [info ] [MainThread]:   token_uri: None
+[0m19:16:41.752346 [info ] [MainThread]:   dataproc_region: None
+[0m19:16:41.752885 [info ] [MainThread]:   dataproc_cluster_name: None
+[0m19:16:41.753399 [info ] [MainThread]:   gcs_bucket: None
+[0m19:16:41.753919 [info ] [MainThread]:   dataproc_batch: None
+[0m19:16:41.754914 [info ] [MainThread]: Registered adapter: bigquery=1.9.1
+[0m19:16:41.971857 [debug] [MainThread]: Acquiring new bigquery connection 'debug'
+[0m19:16:41.972598 [debug] [MainThread]: On debug: select 1 as id
+[0m19:16:41.973202 [debug] [MainThread]: Opening a new connection, currently in state init
+[0m19:16:42.624033 [debug] [MainThread]: BigQuery adapter: https://console.cloud.google.com/bigquery?project=ny-rides-gregl-446219&j=bq:US:6ab46bf4-3b1f-4a22-b23a-d70182e2d75d&page=queryresults
+[0m19:16:42.962802 [info ] [MainThread]:   Connection test: [[32mOK connection ok[0m]
+
+[0m19:16:42.963670 [info ] [MainThread]: [31m1 check failed:[0m
+[0m19:16:42.964368 [info ] [MainThread]: Project loading failed for the following reason:
+ project path </home/greg/projects/nyc_ems_calls/dbt_project.yml> not found
+
+[0m19:16:42.965970 [debug] [MainThread]: Resource report: {"command_name": "debug", "command_success": false, "command_wall_clock_time": 2.4865005, "process_in_blocks": "40", "process_kernel_time": 0.441426, "process_mem_max_rss": "209120", "process_out_blocks": "352", "process_user_time": 3.288611}
+[0m19:16:42.966706 [debug] [MainThread]: Command `dbt debug` failed at 19:16:42.966475 after 2.49 seconds
+[0m19:16:42.967258 [debug] [MainThread]: Connection 'debug' was properly closed.
+[0m19:16:42.967898 [debug] [MainThread]: Sending event: {'category': 'dbt', 'action': 'invocation', 'label': 'end', 'context': [<snowplow_tracker.self_describing_json.SelfDescribingJson object at 0x7f8078323e10>, <snowplow_tracker.self_describing_json.SelfDescribingJson object at 0x7f8078381b50>, <snowplow_tracker.self_describing_json.SelfDescribingJson object at 0x7f8078443680>]}
+[0m19:16:42.968535 [debug] [MainThread]: Flushing usage events
+[0m19:16:43.143428 [debug] [MainThread]: An error was encountered while trying to flush usage events
