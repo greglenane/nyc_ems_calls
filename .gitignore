@@ -8,5 +8,5 @@ docker/.env*
 .python-version
 pyproject.toml
 uv.lock
-*.csv
 package-lock.yml
+python/*.csv
