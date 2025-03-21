@@ -7,3 +7,8 @@ sources:
     schema: nyc_ems_calls_dataset  
     tables:
       - name: nyc_ems_calls 
+        columns:
+          - name: cad_incident_id
+            tests: 
+              - unique
+              - not_null
