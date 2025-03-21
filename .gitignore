@@ -9,3 +9,4 @@ docker/.env*
 pyproject.toml
 uv.lock
 *.csv
+package-lock.yml
