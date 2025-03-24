@@ -20,5 +20,11 @@ models:
     staging:
       +materialized: view
       +schema: staging
+    dim: 
+      +materialized: view
+      +schema: staging
+    fact: 
+      +materialized: table
+      +schema: prod
 seeds: 
   +schema: staging
