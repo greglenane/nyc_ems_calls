@@ -10,3 +10,4 @@ pyproject.toml
 uv.lock
 package-lock.yml
 python/*.csv
+dbt.log
