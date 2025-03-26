@@ -1,6 +1,6 @@
 id: nyc-ems-calls-ingestion
 namespace: ems
-
+  
 variables:
   end_date: "{{ trigger.date | date('yyyy-MM-dd') }}"
   start_date: "{{ trigger.date | dateAdd(-7, 'DAYS') | date('yyyy-MM-dd') }}"
@@ -25,6 +25,20 @@ tasks:
       r = requests.get("{{ vars.api_url }}")
 
       df = pd.DataFrame(json.loads(r.text))
+
+      df = df[['cad_incident_id', 'incident_datetime', 'initial_call_type',
+       'initial_severity_level_code', 'final_call_type',
+       'final_severity_level_code', 'first_assignment_datetime',
+       'valid_dispatch_rspns_time_indc', 'dispatch_response_seconds_qy',
+       'first_activation_datetime', 'first_on_scene_datetime',
+       'valid_incident_rspns_time_indc', 'incident_response_seconds_qy',
+       'incident_travel_tm_seconds_qy', 'incident_close_datetime',
+       'held_indicator', 'incident_disposition_code', 'borough',
+       'incident_dispatch_area', 'zipcode', 'policeprecinct',
+       'citycouncildistrict', 'communitydistrict', 'communityschooldistrict',
+       'congressionaldistrict', 'reopen_indicator', 'special_event_indicator',
+       'standby_indicator', 'transfer_indicator', 'first_to_hosp_datetime',
+       'first_hosp_arrival_datetime']]
       
       df.to_csv("{{ render(vars.file) }}", index=False)
 
@@ -56,8 +70,8 @@ tasks:
           incident_disposition_code STRING OPTIONS(description="A code indicating the final outcome of the incident. See incident dispositions."),
           borough STRING OPTIONS(description="The borough of the incident location."),
           incident_dispatch_area STRING OPTIONS(description="The dispatch area of the incident."),
-          zipcode STRING OPTIONS(description="The zip code of the incident."),
-          policeprecinct STRING OPTIONS(description="The police precinct of the incident."),
+          zipcode STRING OPTIONS(description="The zip code of the incident."),  
+          policeprecinct STRING OPTIONS(description="The police precinct of the incident."),    
           citycouncildistrict STRING OPTIONS(description="The city council district."),
           communitydistrict STRING OPTIONS(description="The community district."),
           communityschooldistrict STRING OPTIONS(description="The community school district."),
@@ -93,8 +107,8 @@ tasks:
           incident_disposition_code STRING OPTIONS(description="A code indicating the final outcome of the incident. See incident dispositions."),
           borough STRING OPTIONS(description="The borough of the incident location."),
           incident_dispatch_area STRING OPTIONS(description="The dispatch area of the incident."),
-          zipcode STRING OPTIONS(description="The zip code of the incident."),
-          policeprecinct STRING OPTIONS(description="The police precinct of the incident."),
+          zipcode STRING OPTIONS(description="The zip code of the incident."),  
+          policeprecinct STRING OPTIONS(description="The police precinct of the incident."),    
           citycouncildistrict STRING OPTIONS(description="The city council district."),
           communitydistrict STRING OPTIONS(description="The community district."),
           communityschooldistrict STRING OPTIONS(description="The community school district."),
@@ -127,9 +141,14 @@ tasks:
           initial_severity_level_code,
           final_call_type,
           final_severity_level_code,
+          first_assignment_datetime,
           valid_dispatch_rspns_time_indc,
           dispatch_response_seconds_qy,
+          first_activation_datetime,
+          first_on_scene_datetime,
           valid_incident_rspns_time_indc,
+          incident_response_seconds_qy,
+          incident_travel_tm_seconds_qy,
           incident_close_datetime,
           held_indicator,
           incident_disposition_code,
@@ -145,13 +164,7 @@ tasks:
           special_event_indicator,
           standby_indicator,
           transfer_indicator,
-          first_assignment_datetime,
-          first_activation_datetime,
-          first_on_scene_datetime,
-          incident_response_seconds_qy,
-          incident_travel_tm_seconds_qy,
-          first_to_hosp_datetime,
-          first_hosp_arrival_datetime)
+          first_to_hosp_datetime)
         VALUES (
           S.cad_incident_id,
           S.incident_datetime,
@@ -159,9 +172,14 @@ tasks:
           S.initial_severity_level_code,
           S.final_call_type,
           S.final_severity_level_code,
+          S.first_assignment_datetime,
           S.valid_dispatch_rspns_time_indc,
           S.dispatch_response_seconds_qy,
+          S.first_activation_datetime,
+          S.first_on_scene_datetime,
           S.valid_incident_rspns_time_indc,
+          S.incident_response_seconds_qy,
+          S.incident_travel_tm_seconds_qy,
           S.incident_close_datetime,
           S.held_indicator,
           S.incident_disposition_code,
@@ -177,16 +195,15 @@ tasks:
           S.special_event_indicator,
           S.standby_indicator,
           S.transfer_indicator,
-          S.first_assignment_datetime,
-          S.first_activation_datetime,
-          S.first_on_scene_datetime,
-          S.incident_response_seconds_qy,
-          S.incident_travel_tm_seconds_qy,
-          S.first_to_hosp_datetime,
-          S.first_hosp_arrival_datetime);
+          S.first_to_hosp_datetime);
+
+  - id: update_labels
+    type: io.kestra.plugin.core.execution.Labels
+    labels:
+      run_date: "{{ trigger.date | date('yyyy-MM-dd') }}"
 
 triggers:
-  - id: weekly-stop-after-fail
+  - id: weekly-sunday
     type: io.kestra.plugin.core.trigger.Schedule
     cron: "0 12 * * *"
     conditions:
