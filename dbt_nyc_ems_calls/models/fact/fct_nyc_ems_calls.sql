@@ -19,8 +19,7 @@ final as (
     select 
         ems_calls.*,
         extract(date from ems_calls.incident_datetime) as incident_date,
-        extract(year from ems_calls.incident_datetime) as incident_year,
-        extract(month from ems_calls.incident_datetime) as incident_month,
+        concat(extract(year from ems_calls.incident_datetime), '-', extract(month from ems_calls.incident_datetime)) as incident_year_month,
         initial_type.description as initial_call_description,
         final_type.description as final_call_description,
         zones.description as incident_area_description,
