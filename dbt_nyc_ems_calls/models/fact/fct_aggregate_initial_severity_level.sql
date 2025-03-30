@@ -1,0 +1,1 @@
+{{ create_aggregate_model('initial_severity_level_code') }}

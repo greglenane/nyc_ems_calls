@@ -44,7 +44,7 @@ final as (
 
 select * from final
 
--- dbt build --select <model_name> --vars '{'is_test_run': 'false'}'
+-- dbt build --vars '{'is_test_run': 'false'}'
 {% if var('is_test_run', default=true) %}
 
   limit 100
