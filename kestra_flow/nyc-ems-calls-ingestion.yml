@@ -1,22 +1,20 @@
 id: nyc-ems-calls-ingestion
 namespace: ems
-
+  
 variables:
-  end_date: "{{ now() | dateAdd(-20, 'YEARS') | date('yyyy-MM-dd') }}"
-  start_date: "{{ render(vars.end_date) | dateAdd(-10, 'DAYS') | date('yyyy-MM-dd') }}"
+  end_date: "{{ trigger.date | date('yyyy-MM-dd') }}"
+  start_date: "{{ trigger.date | dateAdd(-7, 'DAYS') | date('yyyy-MM-dd') }}"
   year: "{{ render(vars.end_date) | date('yyyy') }}"
   month: "{{ render(vars.end_date) | date('MM') }}"
   api_url: "https://data.cityofnewyork.us/resource/76xm-jjuj?$where=incident_datetime%20between%20'{{ render(vars.start_date) }}T00:00:00'%20and%20'{{ render(vars.end_date) }}T00:00:00'&$limit=50000" 
-  file_staging: "{{ render(vars.start_date) }}_{{ render(vars.end_date)}}_nyc-ems-staging.csv"
-  gcs_archive: "gs://{{kv('GCP_BUCKET_NAME')}}/archive/{{ vars.file_staging}}"
-  file_prod: "{{ render(vars.start_date) }}_{{ render(vars.end_date)}}_nyc-ems.csv"
-  gcs_prod: "gs://{{kv('GCP_BUCKET_NAME')}}/{{vars.year}}/{{vars.month}}/{{vars.file_prod}}"
+  file: "{{ render(vars.start_date) }}_{{ render(vars.end_date)}}_nyc-ems.csv"
+  gcs_path: "gs://{{kv('GCP_BUCKET_NAME')}}/{{vars.year}}/{{vars.month}}/{{vars.file}}"
 
 tasks:
-  - id: read_api
+  - id: read_transform
     type: io.kestra.plugin.scripts.python.Script
     outputFiles:
-      - "{{ render(vars.file_staging) }}"
+      - "{{ render(vars.file) }}"
     beforeCommands: 
       - pip install pandas requests
     script: |
@@ -27,51 +25,191 @@ tasks:
       r = requests.get("{{ vars.api_url }}")
 
       df = pd.DataFrame(json.loads(r.text))
-      row_count = len(df)
 
-      df.to_csv("{{ render(vars.file_staging) }}", index=False)
-
-  - id: upload_to_gcs_staging
-    type: io.kestra.plugin.gcp.gcs.Upload
-    from: "{{ outputs.read_api.outputFiles[ render(vars.file_staging) ]}}"
-    to: "{{ render(vars.gcs_archive) }}"
-
-  - id: transform_data
-    type: io.kestra.plugin.scripts.python.Script
-    outputFiles:
-      - "{{ render(vars.file_prod) }}"
-    beforeCommands: 
-      - pip install pandas
-    script: |
-      import pandas as pd
-
-      df = pd.read_csv("{{ outputs['read_api']['outputFiles'][render(vars.file_staging)] }}")
-      df = df.fillna("")
-
-      timestamp_columns = ['incident_datetime', 'first_assignment_datetime', 'first_activation_datetime', 'first_on_scene_datetime', 'first_to_hosp_datetime', 'first_hosp_arrival_datetime', 'incident_close_datetime']   
-      for col in timestamp_columns:
-        df[col] = df[col].apply(lambda x: pd.to_datetime(x) if x != "" else "")
+      df = df[['cad_incident_id', 'incident_datetime', 'initial_call_type',
+       'initial_severity_level_code', 'final_call_type',
+       'final_severity_level_code', 'first_assignment_datetime',
+       'valid_dispatch_rspns_time_indc', 'dispatch_response_seconds_qy',
+       'first_activation_datetime', 'first_on_scene_datetime',
+       'valid_incident_rspns_time_indc', 'incident_response_seconds_qy',
+       'incident_travel_tm_seconds_qy', 'incident_close_datetime',
+       'held_indicator', 'incident_disposition_code', 'borough',
+       'incident_dispatch_area', 'zipcode', 'policeprecinct',
+       'citycouncildistrict', 'communitydistrict', 'communityschooldistrict',
+       'congressionaldistrict', 'reopen_indicator', 'special_event_indicator',
+       'standby_indicator', 'transfer_indicator', 'first_to_hosp_datetime',
+       'first_hosp_arrival_datetime']]
       
-      df['year'] = df['incident_datetime'].dt.year
-      df['month'] = df['incident_datetime'].dt.month
-
-      bool_columns = ['valid_dispatch_rspns_time_indc', 'valid_incident_rspns_time_indc', 'held_indicator', 'reopen_indicator', 'special_event_indicator', 'standby_indicator', 'transfer_indicator']
-      for col in bool_columns:
-         df[col] = df[col].replace({'Y': True, 'N': False})
-      
-      df.to_csv("{{ render(vars.file_prod) }}", index=False)
+      df.to_csv("{{ render(vars.file) }}", index=False)
 
   - id: upload_to_gcs_prod
     type: io.kestra.plugin.gcp.gcs.Upload
-    from: "{{ outputs.transform_data.outputFiles[ render(vars.file_prod) ]}}"
-    to: "{{ render(vars.gcs_prod) }}"
+    from: "{{ outputs.read_transform.outputFiles[ render(vars.file) ]}}"
+    to: "{{ render(vars.gcs_path) }}"
+
+  - id: create_final_table
+    type: io.kestra.plugin.gcp.bigquery.Query
+    sql: |
+      CREATE TABLE IF NOT EXISTS `{{kv('GCP_PROJECT_ID')}}.{{kv('GCP_DATASET')}}.nyc_ems_calls` (
+          cad_incident_id STRING OPTIONS(description="An incident identifier comprising the julian date and a 4 character sequence number starting at 1 each day."),
+          incident_datetime TIMESTAMP OPTIONS(description="The date and time the incident was created in the dispatch system."),
+          initial_call_type STRING OPTIONS(description="The call type assigned at the time of incident creation."),
+          initial_severity_level_code STRING OPTIONS(description="The segment(priority) assigned at the time of incident creation."),
+          final_call_type STRING OPTIONS(description="The call type at the time the incident closes."),
+          final_severity_level_code STRING OPTIONS(description="The segment(priority) assigned at the time the incident closes."),
+          first_assignment_datetime TIMESTAMP OPTIONS(description="The date and time the first unit is assigned."),
+          valid_dispatch_rspns_time_indc STRING OPTIONS(description="Indicates that the components comprising the calculation of the dispatch_response_seconds_qy are valid."),
+          dispatch_response_seconds_qy NUMERIC OPTIONS(description="The time elapsed in seconds between the incident_datetime and the first_assignment_datetime."),
+          first_activation_datetime TIMESTAMP OPTIONS(description="The date and time the first unit gives the signal that it is enroute to the location of the incident."),
+          first_on_scene_datetime TIMESTAMP OPTIONS(description="The date and time the first unit signals that it has arrived at the location of the incident."),
+          valid_incident_rspns_time_indc STRING OPTIONS(description="Indicates that the components comprising the calculation of the incident_response_seconds_qy are valid."),
+          incident_response_seconds_qy NUMERIC OPTIONS(description="The time elapsed in seconds between the incident_datetime and the first_on_scene_datetime."),
+          incident_travel_tm_seconds_qy NUMERIC OPTIONS(description="The time elapsed in seconds between the first_assignment_datetime and the first_on_scene_datetime."),
+          incident_close_datetime TIMESTAMP OPTIONS(description="The date and time the incident closes in the dispatch system."),
+          held_indicator STRING OPTIONS(description="Indicates that for some reason a unit could not be assigned immediately."),
+          incident_disposition_code STRING OPTIONS(description="A code indicating the final outcome of the incident. See incident dispositions."),
+          borough STRING OPTIONS(description="The borough of the incident location."),
+          incident_dispatch_area STRING OPTIONS(description="The dispatch area of the incident."),
+          zipcode STRING OPTIONS(description="The zip code of the incident."),  
+          policeprecinct STRING OPTIONS(description="The police precinct of the incident."),    
+          citycouncildistrict STRING OPTIONS(description="The city council district."),
+          communitydistrict STRING OPTIONS(description="The community district."),
+          communityschooldistrict STRING OPTIONS(description="The community school district."),
+          congressionaldistrict STRING OPTIONS(description="The congressional district."),
+          reopen_indicator STRING OPTIONS(description="Indicates that at some point the incident was closed but then reopened."),
+          special_event_indicator STRING OPTIONS(description="Indicates that the incident was a special event such as the NYC Marathon."),
+          standby_indicator STRING OPTIONS(description="Indicates that the units were assigned to stand by in case they were needed."),
+          transfer_indicator STRING OPTIONS(description="Indicates that the incident was created for the transportation of a patient from one facility (ie a hospital or nursing home) to another."),
+          first_to_hosp_datetime TIMESTAMP OPTIONS(description="The date and time the first unit gives the signal that it is enroute to the hospital."),
+          first_hosp_arrival_datetime TIMESTAMP OPTIONS(description="The date and time the first unit signals that it has arrived at the hospital.")
+      );
+
+  - id: create_temp_external_table
+    type: io.kestra.plugin.gcp.bigquery.Query
+    sql: |
+      CREATE OR REPLACE EXTERNAL TABLE `{{kv('GCP_PROJECT_ID')}}.{{kv('GCP_DATASET')}}.nyc_ems_calls_ext` (
+          cad_incident_id STRING OPTIONS(description="An incident identifier comprising the julian date and a 4 character sequence number starting at 1 each day."),
+          incident_datetime TIMESTAMP OPTIONS(description="The date and time the incident was created in the dispatch system."),
+          initial_call_type STRING OPTIONS(description="The call type assigned at the time of incident creation."),
+          initial_severity_level_code STRING OPTIONS(description="The segment(priority) assigned at the time of incident creation."),
+          final_call_type STRING OPTIONS(description="The call type at the time the incident closes."),
+          final_severity_level_code STRING OPTIONS(description="The segment(priority) assigned at the time the incident closes."),
+          first_assignment_datetime TIMESTAMP OPTIONS(description="The date and time the first unit is assigned."),
+          valid_dispatch_rspns_time_indc STRING OPTIONS(description="Indicates that the components comprising the calculation of the dispatch_response_seconds_qy are valid."),
+          dispatch_response_seconds_qy NUMERIC OPTIONS(description="The time elapsed in seconds between the incident_datetime and the first_assignment_datetime."),
+          first_activation_datetime TIMESTAMP OPTIONS(description="The date and time the first unit gives the signal that it is enroute to the location of the incident."),
+          first_on_scene_datetime TIMESTAMP OPTIONS(description="The date and time the first unit signals that it has arrived at the location of the incident."),
+          valid_incident_rspns_time_indc STRING OPTIONS(description="Indicates that the components comprising the calculation of the incident_response_seconds_qy are valid."),
+          incident_response_seconds_qy NUMERIC OPTIONS(description="The time elapsed in seconds between the incident_datetime and the first_on_scene_datetime."),
+          incident_travel_tm_seconds_qy NUMERIC OPTIONS(description="The time elapsed in seconds between the first_assignment_datetime and the first_on_scene_datetime."),
+          incident_close_datetime TIMESTAMP OPTIONS(description="The date and time the incident closes in the dispatch system."),
+          held_indicator STRING OPTIONS(description="Indicates that for some reason a unit could not be assigned immediately."),
+          incident_disposition_code STRING OPTIONS(description="A code indicating the final outcome of the incident. See incident dispositions."),
+          borough STRING OPTIONS(description="The borough of the incident location."),
+          incident_dispatch_area STRING OPTIONS(description="The dispatch area of the incident."),
+          zipcode STRING OPTIONS(description="The zip code of the incident."),  
+          policeprecinct STRING OPTIONS(description="The police precinct of the incident."),    
+          citycouncildistrict STRING OPTIONS(description="The city council district."),
+          communitydistrict STRING OPTIONS(description="The community district."),
+          communityschooldistrict STRING OPTIONS(description="The community school district."),
+          congressionaldistrict STRING OPTIONS(description="The congressional district."),
+          reopen_indicator STRING OPTIONS(description="Indicates that at some point the incident was closed but then reopened."),
+          special_event_indicator STRING OPTIONS(description="Indicates that the incident was a special event such as the NYC Marathon."),
+          standby_indicator STRING OPTIONS(description="Indicates that the units were assigned to stand by in case they were needed."),
+          transfer_indicator STRING OPTIONS(description="Indicates that the incident was created for the transportation of a patient from one facility (ie a hospital or nursing home) to another."),
+          first_to_hosp_datetime TIMESTAMP OPTIONS(description="The date and time the first unit gives the signal that it is enroute to the hospital."),
+          first_hosp_arrival_datetime TIMESTAMP OPTIONS(description="The date and time the first unit signals that it has arrived at the hospital.")
+      )
+      OPTIONS (
+              format = 'CSV',
+              uris = ['{{render(vars.gcs_path)}}'],
+              skip_leading_rows = 1,
+              ignore_unknown_values = TRUE
+          );
+
+  - id: temp_merge
+    type: io.kestra.plugin.gcp.bigquery.Query
+    sql: |
+      MERGE INTO `{{kv('GCP_PROJECT_ID')}}.{{kv('GCP_DATASET')}}.nyc_ems_calls` D
+      USING `{{kv('GCP_PROJECT_ID')}}.{{kv('GCP_DATASET')}}.nyc_ems_calls_ext` S
+      ON D.cad_incident_id = S.cad_incident_id
+      WHEN NOT MATCHED THEN
+        INSERT (
+          cad_incident_id,
+          incident_datetime,
+          initial_call_type,
+          initial_severity_level_code,
+          final_call_type,
+          final_severity_level_code,
+          first_assignment_datetime,
+          valid_dispatch_rspns_time_indc,
+          dispatch_response_seconds_qy,
+          first_activation_datetime,
+          first_on_scene_datetime,
+          valid_incident_rspns_time_indc,
+          incident_response_seconds_qy,
+          incident_travel_tm_seconds_qy,
+          incident_close_datetime,
+          held_indicator,
+          incident_disposition_code,
+          borough,
+          incident_dispatch_area,
+          zipcode,
+          policeprecinct,
+          citycouncildistrict,
+          communitydistrict,
+          communityschooldistrict,
+          congressionaldistrict,
+          reopen_indicator,
+          special_event_indicator,
+          standby_indicator,
+          transfer_indicator,
+          first_to_hosp_datetime)
+        VALUES (
+          S.cad_incident_id,
+          S.incident_datetime,
+          S.initial_call_type,
+          S.initial_severity_level_code,
+          S.final_call_type,
+          S.final_severity_level_code,
+          S.first_assignment_datetime,
+          S.valid_dispatch_rspns_time_indc,
+          S.dispatch_response_seconds_qy,
+          S.first_activation_datetime,
+          S.first_on_scene_datetime,
+          S.valid_incident_rspns_time_indc,
+          S.incident_response_seconds_qy,
+          S.incident_travel_tm_seconds_qy,
+          S.incident_close_datetime,
+          S.held_indicator,
+          S.incident_disposition_code,
+          S.borough,
+          S.incident_dispatch_area,
+          S.zipcode,
+          S.policeprecinct,
+          S.citycouncildistrict,
+          S.communitydistrict,
+          S.communityschooldistrict,
+          S.congressionaldistrict,
+          S.reopen_indicator,
+          S.special_event_indicator,
+          S.standby_indicator,
+          S.transfer_indicator,
+          S.first_to_hosp_datetime);
+
+  - id: update_labels
+    type: io.kestra.plugin.core.execution.Labels
+    labels:
+      run_date: "{{ trigger.date | date('yyyy-MM-dd') }}"
 
 triggers:
-  - id: weekly-stop-after-fail
+  - id: weekly-sunday
     type: io.kestra.plugin.core.trigger.Schedule
-    cron: "@weekly"
-    stopAfter:
-      - FAILED
+    cron: "0 12 * * *"
+    conditions:
+      - type: io.kestra.plugin.core.condition.DayWeek
+        date: "{{ trigger.date }}"
+        dayOfWeek: "SUNDAY"
 
 pluginDefaults:
   - type: io.kestra.plugin.gcp

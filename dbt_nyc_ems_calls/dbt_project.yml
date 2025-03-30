@@ -1,0 +1,27 @@
+
+name: 'dbt_nyc_ems_calls'
+version: '1.0.0'
+
+profile: 'dbt_nyc_ems_calls'
+
+model-paths: ["models"]
+analysis-paths: ["analyses"]
+test-paths: ["tests"]
+seed-paths: ["seeds"]
+macro-paths: ["macros"]
+snapshot-paths: ["snapshots"]
+
+clean-targets:         
+  - "target"
+  - "dbt_packages"
+
+models:
+  dbt_nyc_ems_calls:
+    staging:
+      +materialized: table
+      +schema: staging
+    fact: 
+      +materialized: table
+      +schema: prod
+seeds: 
+  +schema: staging

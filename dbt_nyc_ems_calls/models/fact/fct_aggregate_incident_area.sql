@@ -1,0 +1,1 @@
+{{ create_aggregate_model('incident_area_description') }}
