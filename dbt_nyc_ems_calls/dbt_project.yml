@@ -18,7 +18,7 @@ clean-targets:
 models:
   dbt_nyc_ems_calls:
     staging:
-      +materialized: view
+      +materialized: table
       +schema: staging
     fact: 
       +materialized: table

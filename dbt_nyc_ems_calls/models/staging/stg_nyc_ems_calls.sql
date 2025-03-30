@@ -24,7 +24,10 @@ final as (
         incident_close_datetime,
         {{ col_to_boolean('held_indicator') }},
         incident_disposition_code,
-        borough,
+        CASE 
+            WHEN borough = 'RICHMOND / STATEN ISLAND' THEN 'STATEN ISLAND'
+            ELSE borough
+        END as borough,
         incident_dispatch_area,
         zipcode,
         policeprecinct,
