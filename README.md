@@ -10,12 +10,12 @@ The data chosen for this project is sampled from the official NYC OpenData repos
 1. API request via python code is made on Sunday for all EMS data from trigger date going back 7 days
 2. API request returns JSON body which is converted to pandas dataframe
 3. Pandas dataframe is uploaded to gcs data lake
- * Data lake is structered as /YEAR/MONTH/DATA.csv
- * CSV was chosen because although there are many files, each file is relatively manageable in size
+    - Data lake is structered as /YEAR/MONTH/DATA.csv
+    - CSV was chosen because although there are many files, each file is relatively manageable in size
 4. Google BigQuery external table is created with the csv saved in step 3
 5. External table is merged into the main data warehouse table using unique incidet ID as matching column
 6. DBT staging model used to set up cleaned version of main data warehouse table
- * Tests made on unique incident ID to ensure uniqueness and absence of null values
+    - Tests made on unique incident ID to ensure uniqueness and absence of null values
 7. DBT fact models derived from staging model
 8. Looker dashboard linked to fact tables for visualization of data and ability to address problem statement
 
