@@ -1,5 +1,13 @@
 # NYC EMS Incident Calls
 
+## Table of Contents
+1. [Problem Statement](#problem-statement)
+2. [Dataset](#dataset)
+3. [Data Pipeline](#data-pipeline)
+4. [Technologies Used](#technologies-used)
+5. [Dashboard](#dashboard)
+6. [Reproducability](#reproducability)
+
 ## Problem Statement:
 There is a need to understand both the volume and distribution of EMS incidents in the New York metropolitan area, including Manhattan, Brooklyn, Bronx, Queens, and Staten Island. Most importantly, there is a desire to understand where EMS demand is highest and where the response time to incidents is slowest so that adjustments can be made in order to properly support the entire metropolitan area with EMS services.
 
