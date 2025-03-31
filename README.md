@@ -29,6 +29,8 @@ The EMS data ranges from 2005 to October 2024, totaling over 26 million records,
 7. DBT fact models derived from staging model
 8. Looker dashboard linked to fact tables for visualization of data and ability to address problem statement
 
+![Data Pipeline](/images/pipeline.png)
+
 ## Technologies Used:
 * Cloud: 
     - GCP 
