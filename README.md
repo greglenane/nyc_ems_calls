@@ -1,5 +1,13 @@
 # NYC EMS Incident Calls
 
+## Table of Contents
+1. [Problem Statement](#problem-statement)
+2. [Dataset](#dataset)
+3. [Data Pipeline](#data-pipeline)
+4. [Technologies Used](#technologies-used)
+5. [Dashboard](#dashboard)
+6. [Reproducability](#reproducability)
+
 ## Problem Statement:
 There is a need to understand both the volume and distribution of EMS incidents in the New York metropolitan area, including Manhattan, Brooklyn, Bronx, Queens, and Staten Island. Most importantly, there is a desire to understand where EMS demand is highest and where the response time to incidents is slowest so that adjustments can be made in order to properly support the entire metropolitan area with EMS services.
 
@@ -21,6 +29,8 @@ The EMS data ranges from 2005 to October 2024, totaling over 26 million records,
 7. DBT fact models derived from staging model
 8. Looker dashboard linked to fact tables for visualization of data and ability to address problem statement
 
+![Data Pipeline](/images/pipeline.png)
+
 ## Technologies Used:
 * Cloud: 
     - GCP 
@@ -37,3 +47,32 @@ The EMS data ranges from 2005 to October 2024, totaling over 26 million records,
 
 ## Dashboard:
 Project dashboard can be found here: [Dashboard](https://lookerstudio.google.com/s/ifu3CpbM-yI)
+
+## Reproducability:
+* Prerequisites:
+    - Docker/Docker Compose
+    - GCP Project
+    - DBT Core with BigQuery extension
+    - Clone repo
+1. Open the variables.tf file from within /terraform
+2. Update all variables for you specific GCP project. You will also need to determine the naming for your BigQuery data set the the GCS bucket (must be globally unique)
+    - In the console within /terraform run ```terraform init```
+    - Run ```terraform plan``` and review the resources that will be built (BigQuery dataset and GCS bucket)
+    - Run ```terraform apply``` and check your GCP project to make sure that the resources have been created
+    - If at any point you would like to delete these resources run ```terraform destroy``` from this same directory 
+3. Within /Docker you need to create a .env file that has 3 environment variables
+    - ```SECRET_KESTRA_USERNAME=<email>```
+    - ```SECRET_KESTRA_PASSWORD=<password>```
+    - (OPTIONAL) ```SECRET_GITHUB_TOKEN=<base64 token generated in github>```
+4. Witin /Docker run ```docker-compose up -d``` to initiate the Kestra and it postgres DB
+5. Ensure that port 8082 on the VM is exposed to your local machine
+6. Type localhost:8082 into your web browswer to open up Kestra
+    - Import /kestra_flow/nyc-ems-calls-ingestion.yml into Kestra
+    - Navigate to the flows trigger and begin process of executing a backfill since this project will use the backfill tool to simualate a weekly batch process
+    - Execute the flow on backfill from 2005-01-01 to 2023-12-31
+7. Once the backfill has executed navigate to /dbt_nyc_ems_calls
+8. Execute a test run by running ```dbt build``` in the terminal
+9. Check BigQuery to ensure everything was transfered over.
+    - You should see nyc_ems_calls_dataset_staging and nyc_ems_calls_dataset_prod
+10. Execute a production run by running ```dbt build --vars '{'is_test_run': 'false'}```
+11. Check 'nyc_ems_calls_dataset_staging.stg_nyc_ems_calls' should have a row count of 26012701
